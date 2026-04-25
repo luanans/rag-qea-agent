@@ -76,6 +76,18 @@ Usuário
 
 ---
 
+### Avaliação (RAGAS)
+
+| Métrica | Score |
+|---|---|
+| Faithfulness | 0.939 |
+| Answer Relevancy | 0.840 |
+| Context Precision | 0.917 |
+| Context Recall | 0.900 |
+
+
+---
+
 ## Tools vs. Agente — separação e motivações
 
 ### Tools (`tools/`)
@@ -94,11 +106,11 @@ As tools são **funções determinísticas e testáveis** que realizam operaçõ
 
 ### Agente (`agent/`)
 
-O `QAAgent` é a **camada de orquestração**: ele não sabe de recuperação de informação — delega tudo às tools. Sua responsabilidade é:
+O `QAAgent` é a **camada de orquestração**: ele não recupera a informação, delega esta responsabilidade às tools. Sua responsabilidade é:
 
 1. Gerenciar o histórico de conversa (`contents`)
 2. Passar os schemas das tools ao Gemini a cada iteração
-3. Interpretar as `function_call` responses do Gemini
+3. Interpretar as respostas das funções
 4. Executar as chamadas via `ToolRegistry`
 5. Encerrar o loop quando o Gemini produz uma resposta textual final
 
@@ -183,32 +195,53 @@ Os testes são unitários e não precisam de API key, ChromaDB ou papers baixado
 
 ### Modelo de embedding: `gemini-embedding-001`
 
-O `gemini-embedding-001` foi escolhido por apresentar os melhores resultados de retrieval nos benchmarks avaliados (MTEB Retrieval: 67,71; MTEB geral: 75,85) entre os modelos testados, que incluíam `all-MiniLM-L6-v2`, `bge-large-en-v1.5` e `e5-large-v2`. O modelo é acessado via API ao custo de $0,15/M tokens, eliminando a necessidade de GPU local para embeddings.
+A escolha do modelo gemini-embedding-001 justifica-se não apenas pelos excelentes resultados em benchmarks, com métricas de 67,71 em MTEB Retrieval e 75,85 no MTEB geral, mas também por sua performance superior nos testes locais comparado aos modelos all-MiniLM-L6-v2, bge-large-en-v1.5 e e5-large-v2. Além do desempenho, o acesso via API foi um fator decisivo, pois elimina a necessidade de GPU local e apresenta um custo competitivo de $0,15 por milhão de tokens.
 
 O sistema usa embeddings **assimétricos**: `RETRIEVAL_DOCUMENT` para indexar os chunks e `RETRIEVAL_QUERY` para vetorizar as consultas, o que reflete o uso recomendado do modelo para tarefas de retrieval.
 
 ### Vector store: ChromaDB
 
-ChromaDB foi escolhido por ser leve, não exigir infra adicional (roda em processo, persiste em disco), e ter uma API simples compatível com o padrão do projeto. Para produção com milhões de chunks, a substituição por Qdrant ou Pinecone seria direta — `VectorStore` isola completamente o ChromaDB do resto do sistema.
+O ChromaDB foi selecionado por sua natureza lightweight, operando em processo e com persistência em disco, o que dispensa a necessidade de infraestrutura adicional. A métrica de similaridade adotada é a de cosseno (hnsw:space: cosine), métrica que foca na direção dos vetores (contexto).
 
-A similaridade usada é **cosseno** (`hnsw:space: cosine`), adequada para embeddings normalizados.
+### Estratégia de chunking: Chuncking Hierárquico
 
-### Estratégia de chunking: palavras com overlap
+Primeiro o Docling divide os documentos em seções, depois o chunker divide o texto por número de palavras (`chunk_size=500`) com sobreposição (`overlap=50`). A divisão feita **por seção** preserva o contexto semântico. Cada chunk carrega metadados de `paper_id`, `title` e `section`, permitindo filtros no momento da busca.
 
-O chunker divide o texto por número de palavras (`chunk_size=500`) com sobreposição (`overlap=50`). A divisão é feita **por seção** — chunks não cruzam fronteiras de seção, preservando o contexto semântico. Cada chunk carrega metadados de `paper_id`, `title` e `section`, permitindo filtros no momento da busca.
-
-O tamanho de 500 palavras foi escolhido por caber confortavelmente no contexto de embedding do Gemini e por representar um parágrafo substancial sem ser excessivamente longo.
+O tamanho de 500 palavras foi escolhido por caber na janela do contexto de `gemini-embedding-001` e por representar um parágrafo substancial sem ser excessivamente longo.
 
 ### Parser de PDF: Docling
 
-Docling foi escolhido por identificar automaticamente a estrutura do documento (cabeçalhos de seção, parágrafos, fórmulas, listas) com mais fidelidade que extratores puramente textuais como PyMuPDF. O parser normaliza os nomes de seção via `SECTION_ALIASES` — mapeando variações como "1 Introduction", "6 Conclusion" e "Conclusions" para identificadores canônicos — o que permite que o `ExtractSectionTool` funcione de forma previsível independente de como cada paper rotulou suas seções.
+Docling foi escolhido por identificar automaticamente a estrutura do documento (cabeçalhos de seção, parágrafos, fórmulas, listas) com mais fidelidade que extratores puramente textuais como PyMuPDF. O parser normaliza os nomes de seção via `SECTION_ALIASES`, mapeando variações como "1 Introduction", "6 Conclusion" e "Conclusions" para identificadores canônicos, o que permite que o `ExtractSectionTool` funcione de forma previsível independente de como cada paper rotulou suas seções.
 
 ### Agente: Gemini com function calling nativo
 
-O `QAAgent` usa o SDK `google-genai` com function calling nativo do Gemini 2.5 Flash. Não foi usada nenhuma framework de agente (LangChain, LlamaIndex, CrewAI) para manter o controle explícito sobre o loop de raciocínio e facilitar o debugging. O loop é simples: até `max_iterations` rodadas, o agente executa tools até o Gemini produzir uma resposta textual final.
+O QAAgent utiliza o SDK oficial google-genai com a funcionalidade de function calling nativa do Gemini 2.5 Flash. Não foram utilizados frameworks de orquestração por se tratar de um projeto de escopo reduzido, onde as capacidades nativas do SDK já atendem todas as necessidades de forma simples e direta. O fluxo de execução segue um loop previsível: durante até max_iterations (default=5), o agente aciona as ferramentas necessárias conforme a orientação do modelo, encerrando o processo assim que o Gemini gera a resposta textual final.
+
+Com a descontinuação da família gemini 2.0, iniciada em março de 2026, a migração para as versões 2.5 Flash ou 2.5 Flash-Lite tornou-se a recomendação oficial para novos projetos. Dessa forma, o agente utiliza o `gemini-2.5-flash`.
 
 ### API: FastAPI com Pydantic
 
 FastAPI com validação Pydantic em todos os endpoints. A injeção de dependência via `Depends` garante que `VectorStore`, `SectionStore` e `QAAgent` sejam singletons (`lru_cache`), evitando re-carregamento a cada request.
 
 ---
+
+## Limitações conhecidas
+A solução utilizou estratégias robustas para garantir os critérios exigidos, apresentando desempenho satisfatório. As limitações abaixo visam a evolução do projeto:
+
+### Chunking Fixo vs. Semântico
+O chunk_size fixo demonstrou um bom desempenho dentro do escopo do projeto. No entanto, mesmo com o uso de overlapping, em cenários mais complexos ainda existe a possibilidade perda de contexto. A evolução para um chunking semântico (baseado na variação de significado entre sentenças) é o próximo passo lógico. Essa solução foi preterida inicialmente pela simplicidade e velocidade de aplicar o chunking fixo dentro das seções já estruturadas pelo Docling.
+
+### Perda de Contexto Multimodal
+Embora o Docling seja excelente para extração estrutural, artigos de ML dependem fortemente de tabelas de resultados e gráficos. Se o parser converter tabelas em texto bruto de forma desordenada ou ignorar elementos visuais, o agente terá dificuldade em responder perguntas quantitativas específicas caso a informação não esteja replicada no corpo do texto.
+
+### Abordagem de RAG Híbrido
+O RAG atual é do tipo denso, baseado na similaridade de cosseno de embeddings. Nos testes realizados, o desempenho essa abordagem demonstrou desempenho satisfatório. Entretanto, para sistemas que enfrentam falhas na busca de termos técnicos muito específicos ou siglas raras, recomenda-se uma abordagem híbrida (hybrid retrieval), combinando a busca vetorial (semântica) com a busca por palavras-chave (BM25/keyword search).
+
+### Ausência de Reranking
+Atualmente, os chunks retornados pelo ChromaDB são ordenados estritamente por similaridade de cosseno. A implementação de um Cross-Encoder para Reranking no topo dos resultados iniciais aumentaria significativamente a precisão, garantindo que o contexto mais relevante seja o primeiro a ser entregue ao Gemini.
+
+### Ingestão Serial e Escalabilidade
+O processamento dos papers ocorre de forma serial. Para corpora maiores, a arquitetura de ingestão precisará ser paralelizada (via multiprocessing ou task queues) para otimizar o tempo de parsing e geração de embeddings.
+
+### Observabilidade
+O sistema atual não tem de tracing. A integração de ferramentas como LangSmith, Langfuse ou OpenTelemetry é essencial para monitorar custos e latência em produção.
