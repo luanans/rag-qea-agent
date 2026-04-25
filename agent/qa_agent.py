@@ -67,7 +67,7 @@ class QAAgent:
             function_calls = [p for p in assistant_parts if p.function_call is not None]
             text_parts = [p for p in assistant_parts if p.text]
 
-            contents.append(types.Content(role="model", parts=assistant_parts))
+            contents.append(candidate.content)
 
             if not function_calls:
                 final_text = "\n".join(p.text for p in text_parts if p.text).strip()

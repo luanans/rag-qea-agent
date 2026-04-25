@@ -1,3 +1,5 @@
+import json
+
 from tools.extract_section import ExtractSectionTool
 
 
@@ -7,22 +9,23 @@ class TestExtractSectionTool:
         result = tool.run({"paper_id": "attention", "section": "abstract"})
 
         assert result.success is True
-        assert result.data is not None
-        assert result.data.paper_id == "attention"
-        assert result.data.section == "abstract"
-        assert "Transformer" in result.data.text
-        assert result.data.char_count > 0
+        assert result.output is not None
+        data = json.loads(result.output)
+        assert data["paper_id"] == "attention"
+        assert data["section"] == "abstract"
+        assert "Transformer" in data["text"]
+        assert data["char_count"] > 0
 
     def test_extract_returns_correct_title(self, section_store):
         tool = ExtractSectionTool(section_store=section_store)
         result = tool.run({"paper_id": "bert", "section": "abstract"})
 
         assert result.success is True
-        assert "BERT" in result.data.title
+        data = json.loads(result.output)
+        assert "BERT" in data["title"]
 
     def test_extract_nonexistent_section_returns_failure(self, section_store):
         tool = ExtractSectionTool(section_store=section_store)
-        # 'results' não foi adicionado no fixture
         result = tool.run({"paper_id": "attention", "section": "results"})
 
         assert result.success is False
@@ -53,7 +56,8 @@ class TestExtractSectionTool:
         result = tool.run({"paper_id": "rag", "section": "abstract"})
 
         assert result.success is True
-        assert result.data.char_count == len(result.data.text)
+        data = json.loads(result.output)
+        assert data["char_count"] == len(data["text"])
 
     def test_gemini_schema_structure(self, section_store):
         tool = ExtractSectionTool(section_store=section_store)

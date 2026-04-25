@@ -127,11 +127,9 @@ class TestQAAgent:
         agent.answer("Qualquer pergunta")
 
         call_kwargs = agent._mock_client.models.generate_content.call_args
-        config = (
-            call_kwargs.kwargs.get("config") or call_kwargs.args[2]
-            if len(call_kwargs.args) > 2
-            else None
-        )
+        config = call_kwargs.kwargs.get("config")
+        if config is None and len(call_kwargs.args) > 2:
+            config = call_kwargs.args[2]
 
         assert config is not None
         assert config.tools is not None
