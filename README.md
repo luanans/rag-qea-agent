@@ -212,19 +212,3 @@ O `QAAgent` usa o SDK `google-genai` com function calling nativo do Gemini 2.5 F
 FastAPI com validação Pydantic em todos os endpoints. A injeção de dependência via `Depends` garante que `VectorStore`, `SectionStore` e `QAAgent` sejam singletons (`lru_cache`), evitando re-carregamento a cada request.
 
 ---
-
-## Limitações conhecidas
-
-**Corpus fixo.** O sistema cobre apenas três papers. Adicionar novos papers requer re-executar `ingest.py`. Não há endpoint de ingestão dinâmica.
-
-**Sem memória de conversa.** Cada chamada ao `/ask` é tratada de forma independente. O agente não mantém contexto entre perguntas — não é possível fazer perguntas de acompanhamento como "e sobre o segundo paper que você mencionou?".
-
-**Rate limiting sem retry.** O sistema expõe o erro 429 do Gemini diretamente ao cliente sem backoff automático ou fila. Sob uso intenso, o cliente precisa gerenciar os retries.
-
-**Chunking por palavras.** A divisão por número de palavras é simples, mas pode cortar sentenças no meio. Uma alternativa melhor seria usar sentenças ou parágrafos como unidade mínima, mas aumentaria a complexidade do chunker.
-
-**Sem reranking.** Os resultados do ChromaDB são retornados diretamente por score de cosseno, sem um estágio de reranking (ex: cross-encoder). Isso pode retornar chunks relevantes superficialmente mas semanticamente distantes da pergunta.
-
-**Ingestão serial.** `ingest.py` processa os papers sequencialmente. Para um corpus maior, a paralelização do parsing e do embedding seria necessária.
-
-**Deployment não coberto.** Não há Dockerfile, `docker-compose.yml`, ou configuração de CI/CD. A aplicação roda apenas localmente.
