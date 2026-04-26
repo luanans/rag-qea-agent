@@ -10,7 +10,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get("/", summary="Health check")
+@router.get(
+    "/",
+    summary="Health check",
+    response_description="Service status and docs URL.",
+)
 def health() -> dict:
     return {"status": "ok", "docs": "/docs"}
 
@@ -18,12 +22,39 @@ def health() -> dict:
 @router.post(
     "/ask",
     response_model=AskResponse,
-    summary="Faz uma pergunta ao agente Q&A",
+    summary="Ask a question to the Q&A agent",
     description=(
-        "Envia uma pergunta em linguagem natural ao agente. "
-        "O agente busca nos papers Attention Is All You Need, BERT e RAG "
-        "e retorna uma resposta embasada nos textos originais."
+        "Sends a natural language question to the agent. "
+        "The agent uses semantic search (`search_documents`) and full-section retrieval "
+        "(`extract_section`) over three ML papers — *Attention Is All You Need*, *BERT*, "
+        "and *Retrieval-Augmented Generation* — and synthesizes an answer grounded in "
+        "the original texts.\n\n"
+        "**Supported topics:** Transformer architecture, multi-head attention, positional "
+        "encoding, BERT pre-training, masked language modelling, RAG retrieval pipeline, "
+        "knowledge-intensive NLP tasks, and more.\n"
+        "**Supported Languages:**  Question accepted in any language supported by Gemini — English, Portuguese, Spanish, French and 100+ others. The agent replies in the same language as the question."
     ),
+    response_description="The agent's answer, grounded in the papers' content.",
+    responses={
+        429: {
+            "description": "Gemini API rate limit reached. Wait a moment and retry.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Gemini API rate limit reached. Wait a moment and try again."
+                    }
+                }
+            },
+        },
+        500: {
+            "description": "Internal agent error.",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Agent error: <error message>"}
+                }
+            },
+        },
+    },
 )
 def ask(
     request: AskRequest,
