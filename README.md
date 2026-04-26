@@ -77,6 +77,7 @@ Usuário
 ---
 
 ### Avaliação (RAGAS)
+ Métricas obtidas para uma amostra de 10 perguntas:
 
 | Métrica | Score |
 |---|---|
@@ -92,16 +93,16 @@ Usuário
 
 ### Tools (`tools/`)
 
-As tools são **funções determinísticas e testáveis** que realizam operações de recuperação de informação. Cada tool:
+As tools são **funções puras de recuperação de informação**, instanciáveis e testáveis de forma isolada. Cada tool:
 
 - Herda de `BaseTool[InputT, OutputT]` — interface genérica com validação Pydantic de entrada/saída
 - Expõe `to_gemini_schema()` — gera o JSON Schema que o Gemini usa para decidir quando e como chamar a tool
-- Retorna `ToolResult` — container com `.success`, `.output` (JSON) e `.error`, desacoplado do protocolo HTTP ou do SDK do Gemini
-- Não tem conhecimento do agente nem do modelo de linguagem
+- Retorna `ToolResult` — container com `.success`, `.output` (JSON) e `.error`, sem acoplar nenhuma dependência do SDK do Gemini
+- Não tem conhecimento do agente que a utiliza
 
 | Tool | O que faz | Quando o Gemini a usa |
 |---|---|---|
-| `search_documents` | Busca semântica nos chunks via ChromaDB | Perguntas sobre conceitos, mecanismos, resultados |
+| `search_documents` | Busca semântica nos chunks | Perguntas sobre conceitos, mecanismos, resultados |
 | `extract_section` | Retorna o texto completo de uma seção | Perguntas sobre abstract, introdução ou conclusão |
 
 ### Agente (`agent/`)
@@ -110,23 +111,38 @@ O `QAAgent` é a **camada de orquestração**: ele não recupera a informação,
 
 1. Gerenciar o histórico de conversa (`contents`)
 2. Passar os schemas das tools ao Gemini a cada iteração
-3. Interpretar as respostas das funções
+3. Deserializar o `ToolResult` e repassá-lo ao histórico de conversa
 4. Executar as chamadas via `ToolRegistry`
 5. Encerrar o loop quando o Gemini produz uma resposta textual final
 
-**Por que separar?** As tools podem ser testadas unitariamente sem nenhum mock do Gemini — basta instanciar a tool com um `SectionStore` ou `VectorStore` de teste. O agente pode ser testado sem embeddings ou ChromaDB reais — basta mockar o `google.genai.Client`. Essa separação reduz o acoplamento e torna os testes rápidos e confiáveis.
+**Por que tools e agente separados?**
+
+Modelos de linguagem são eficazes em raciocínio e geração de linguagem, mas operam sobre um contexto fixo: não consultam fontes externas, não executam código e não têm acesso a informações além do que foi visto no treinamento. As tools atuam nessa lacuna: são o mecanismo pelo qual o agente estende suas capacidades. Sem essa separação, lógica de recuperação e lógica de orquestração se misturariam em um único componente difícil de evoluir e substituir.
+
+A separação também torna os testes precisos e rápidos: as tools podem ser validadas unitariamente com um `SectionStore` ou `VectorStore` de teste, sem nenhum mock do Gemini; o agente pode ser testado sem embeddings ou ChromaDB reais, bastando mockar o `google.genai.Client`. Cada camada pode falhar de forma independente e ser corrigida de forma isolada.
 
 ---
 
 ## Setup — do zero ao primeiro `/ask`
 
+### 1. Instalar dependências
+
+```bash
+uv sync
+```
+
 ### Pré-requisitos
 
 - Python 3.14+
-- `uv` (gerenciador de pacotes)
 - Chave de API do Google AI Studio: [aistudio.google.com](https://aistudio.google.com)
-
 ### 1. Instalar dependências
+
+Instale as dependências via pip:
+```bash
+pip install -r requirements.txt
+```
+
+Como alternativa, se você utiliza o uv:
 
 ```bash
 uv sync
@@ -140,7 +156,7 @@ Crie um arquivo `.env` na raiz do projeto:
 GEMINI_API_KEY=sua_chave_aqui
 ```
 
-As demais configurações têm valores padrão razoáveis (ver `app/config.py`). Para customizar:
+As demais configurações têm valores padrão (ver `app/config.py`). Para customizar:
 
 ```env
 GEMINI_MODEL=gemini-2.5-flash
