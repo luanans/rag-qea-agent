@@ -39,11 +39,12 @@ class TestExtractSectionTool:
         assert result.success is False
         assert "validation" in result.error.lower()
 
-    def test_invalid_section_name_returns_failure(self, section_store):
+    def test_unknown_section_name_returns_failure(self, section_store):
         tool = ExtractSectionTool(section_store=section_store)
         result = tool.run({"paper_id": "attention", "section": "random_section"})
 
         assert result.success is False
+        assert "not found" in result.error.lower()
 
     def test_missing_required_fields_returns_failure(self, section_store):
         tool = ExtractSectionTool(section_store=section_store)

@@ -5,30 +5,6 @@ from typing import NamedTuple
 
 logger = logging.getLogger(__name__)
 
-SECTION_ALIASES: dict[str, str] = {
-    "abstract": "abstract",
-    "1 introduction": "introduction",
-    "introduction": "introduction",
-    "2 background": "related_work",
-    "related work": "related_work",
-    "background": "related_work",
-    "3 model architecture": "methodology",
-    "model architecture": "methodology",
-    "method": "methodology",
-    "methodology": "methodology",
-    "approach": "methodology",
-    "4 training": "experiments",
-    "experiments": "experiments",
-    "experimental setup": "experiments",
-    "training": "experiments",
-    "5 results": "results",
-    "results": "results",
-    "6 conclusion": "conclusion",
-    "conclusion": "conclusion",
-    "conclusions": "conclusion",
-    "discussion": "discussion",
-}
-
 
 class ParsedSection(NamedTuple):
     name: str
@@ -45,9 +21,9 @@ class ParsedPaper(NamedTuple):
 
 
 def _normalize_section_name(raw: str) -> str | None:
-    cleaned = raw.strip().lower()
-    cleaned_no_num = re.sub(r"^\d+\.?\s+", "", cleaned)
-    return SECTION_ALIASES.get(cleaned) or SECTION_ALIASES.get(cleaned_no_num)
+    cleaned = re.sub(r"^\d+\.?\d*\s+", "", raw.strip().lower())
+    slug = re.sub(r"[\s\-]+", "_", cleaned.strip())
+    return slug if slug else None
 
 
 def parse_pdf(pdf_path: Path, paper_id: str, title: str) -> ParsedPaper:

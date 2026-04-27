@@ -12,16 +12,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 PaperId = Literal["attention", "bert", "rag"]
-SectionName = Literal[
-    "abstract",
-    "introduction",
-    "conclusion",
-    "related_work",
-    "methodology",
-    "experiments",
-    "results",
-    "discussion",
-]
 
 PAPER_TITLES: dict[str, str] = {
     "attention": "Attention Is All You Need",
@@ -40,11 +30,11 @@ class ExtractSectionInput(BaseModel):
             "'rag' = Retrieval-Augmented Generation."
         ),
     )
-    section: SectionName = Field(
+    section: str = Field(
         ...,
         description=(
-            "Section to extract. Valid values: abstract, introduction, conclusion, "
-            "related_work, methodology, experiments, results, discussion."
+            "Exact section name to extract, as returned by list_sections. "
+            "Examples: abstract, introduction, conclusion, model_architecture."
         ),
     )
 
@@ -60,8 +50,8 @@ class ExtractSectionOutput(BaseModel):
 class ExtractSectionTool(BaseTool[ExtractSectionInput, ExtractSectionOutput]):
     name: str = "extract_section"
     description: str = (
-        "Extracts the full text of a specific section from a paper "
-        "(e.g. abstract, introduction, conclusion). "
+        "Extracts the full text of a specific section from a paper. "
+        "The section name must match exactly what list_sections returns. "
         "Use when you need the complete content of a section to ground the answer."
     )
     input_model = ExtractSectionInput

@@ -97,9 +97,11 @@ def mock_vector_store(mocker):
 def registry_with_mocks(mock_vector_store, section_store):
     """Full ToolRegistry using mocked dependencies."""
     from tools.extract_section import ExtractSectionTool
+    from tools.list_sections import ListSectionsTool
     from tools.search_documents import SearchDocumentsTool
 
     registry = ToolRegistry()
     registry.register(SearchDocumentsTool(vector_store=mock_vector_store))
+    registry.register(ListSectionsTool(section_store=section_store))
     registry.register(ExtractSectionTool(section_store=section_store))
     return registry

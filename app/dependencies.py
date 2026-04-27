@@ -8,6 +8,7 @@ from agent.qa_agent import QAAgent
 from app.config import get_settings
 from rag.vector_store import VectorStore
 from tools.extract_section import ExtractSectionTool
+from tools.list_sections import ListSectionsTool
 from tools.registry import ToolRegistry
 from tools.search_documents import SearchDocumentsTool
 
@@ -61,6 +62,7 @@ def get_section_store() -> SectionStore:
 def get_registry() -> ToolRegistry:
     registry = ToolRegistry()
     registry.register(SearchDocumentsTool(vector_store=get_vector_store()))
+    registry.register(ListSectionsTool(section_store=get_section_store()))
     registry.register(ExtractSectionTool(section_store=get_section_store()))
     logger.info("ToolRegistry built with tools: %s", registry.tool_names)
     return registry

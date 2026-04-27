@@ -31,20 +31,20 @@ Usuário
 │  3. Agente executa a tool via ToolRegistry          │
 │  4. Resultado volta ao Gemini                       │
 │  5. Repete até Gemini produzir resposta final       │
-└────────────┬──────────────────┬─────────────────────┘
-             │                  │
-             ▼                  ▼
-┌────────────────┐   ┌─────────────────────┐
-│ search_        │   │ extract_section     │
-│ documents      │   │ (tools/)            │
-│ (tools/)       │   │                     │
-│                │   │ Retorna o texto     │
-│ Busca semân-   │   │ completo de uma     │
-│ tica via       │   │ seção (abstract,    │
-│ VectorStore    │   │ conclusion, etc.)   │
-└───────┬────────┘   └──────────┬──────────┘
-        │                       │
-        ▼                       ▼
+└──────────┬───────────────┬──────────────┬──────────────┘
+           │               │              │
+           ▼               ▼              ▼
+┌──────────────┐  ┌──────────────┐  ┌────────────────┐
+│ search_      │  │ list_        │  │ extract_       │
+│ documents    │  │ sections     │  │ section        │
+│ (tools/)     │  │ (tools/)     │  │ (tools/)       │
+│              │  │              │  │                │
+│ Busca semân- │  │ Lista seções │  │ Retorna texto  │
+│ tica via     │  │ disponíveis  │  │ completo de    │
+│ VectorStore  │  │ por paper    │  │ uma seção      │
+└──────┬───────┘  └──────┬───────┘  └───────┬────────┘
+        │              │              │
+        ▼              ▼              ▼
 ┌───────────────────┐   ┌───────────────────┐
 │ VectorStore       │   │ SectionStore      │
 │ (rag/)            │   │ (rag/)            │
@@ -70,7 +70,7 @@ Usuário
 **Fluxo de uma pergunta:**
 1. A API recebe a pergunta via `POST /ask`
 2. O `QAAgent` monta o histórico de conversa e passa os schemas das tools ao Gemini
-3. O Gemini decide chamar `search_documents` (busca semântica) e/ou `extract_section` (seção completa)
+3. O Gemini decide quais tools chamar — tipicamente começa com `search_documents` para localizar chunks relevantes; se precisar de uma seção completa, chama `list_sections` para descobrir os nomes disponíveis e depois `extract_section` com o nome exato
 4. O agente executa cada tool call via `ToolRegistry` e devolve os resultados ao Gemini
 5. O Gemini sintetiza a resposta final citando papers e seções
 
@@ -89,8 +89,9 @@ As tools são **funções puras de recuperação de informação**, instanciáve
 
 | Tool | O que faz | Quando o Gemini a usa |
 |---|---|---|
-| `search_documents` | Busca semântica nos chunks | Perguntas sobre conceitos, mecanismos, resultados |
-| `extract_section` | Retorna o texto completo de uma seção | Perguntas sobre abstract, introdução ou conclusão |
+| `search_documents` | Busca semântica nos chunks via ChromaDB | Perguntas sobre conceitos, mecanismos, resultados |
+| `list_sections` | Lista as seções disponíveis em um ou todos os papers | Antes de `extract_section`, para descobrir nomes exatos |
+| `extract_section` | Retorna o texto completo de uma seção pelo nome exato | Quando precisa do conteúdo integral de uma seção |
 
 ### Agente (`agent/`)
 
@@ -223,7 +224,9 @@ O tamanho de 500 palavras foi escolhido por caber na janela do contexto de `gemi
 
 ### Parser de PDF: Docling
 
-Docling foi escolhido por identificar automaticamente a estrutura do documento (cabeçalhos de seção, parágrafos, fórmulas, listas) com mais fidelidade que extratores puramente textuais como PyMuPDF. O parser normaliza os nomes de seção via `SECTION_ALIASES`, mapeando variações como "1 Introduction", "6 Conclusion" e "Conclusions" para identificadores canônicos, o que permite que o `ExtractSectionTool` funcione de forma previsível independente de como cada paper rotulou suas seções.
+Docling foi escolhido por identificar automaticamente a estrutura do documento (cabeçalhos de seção, parágrafos, fórmulas, listas) com mais fidelidade que extratores puramente textuais como PyMuPDF. O parser normaliza os nomes de seção em slugs — remove numeração inicial e substitui espaços por underscore — preservando o nome original de cada paper: `"3 Model Architecture"` vira `model_architecture`, `"Related Work"` vira `related_work`. Nenhuma seção é descartada por não corresponder a um alias fixo.
+
+O agente descobre os nomes disponíveis em tempo de execução via `list_sections`, garantindo que `extract_section` sempre receba um nome válido.
 
 ### Agente: Gemini com function calling nativo
 

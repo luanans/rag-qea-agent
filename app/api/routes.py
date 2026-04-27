@@ -31,7 +31,7 @@ def health() -> dict:
         "the original texts.\n\n"
         "**Supported topics:** Transformer architecture, multi-head attention, positional "
         "encoding, BERT pre-training, masked language modelling, RAG retrieval pipeline, "
-        "knowledge-intensive NLP tasks, and more.\n"
+        "knowledge-intensive NLP tasks, and more.\n\n"
         "**Supported Languages:**  Question accepted in any language supported by Gemini — English, Portuguese, Spanish, French and 100+ others. The agent replies in the same language as the question."
     ),
     response_description="The agent's answer, grounded in the papers' content.",
