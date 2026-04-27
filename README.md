@@ -199,11 +199,22 @@ curl -X POST http://localhost:8000/ask \
 
 ### 6. Rodar os testes
 
+O projeto tem dois tipos de teste: unitários (rápidos, sem dependências externas) e E2E (requerem API key e ingest executado).
+
+**Apenas unitários** — não precisam de API key, ChromaDB ou papers baixados:
+```bash
+python -m pytest -m "not e2e"
+```
+
+**Apenas E2E** — requerem `.env` com `GEMINI_API_KEY` e `ingest.py` já executado:
+```bash
+python -m pytest -m e2e -v
+```
+
+**Todos os testes:**
 ```bash
 python -m pytest
 ```
-
-Os testes são unitários e não precisam de API key, ChromaDB ou papers baixados.
 
 ---
 
