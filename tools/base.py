@@ -10,13 +10,10 @@ OutputT = TypeVar("OutputT", bound=BaseModel)
 logger = logging.getLogger(__name__)
 
 
-class ToolResult:
-    def __init__(
-        self, success: bool, output: str | None = None, error: str | None = None
-    ) -> None:
-        self.success = success
-        self.output = output
-        self.error = error
+class ToolResult(BaseModel):
+    success: bool
+    output: str | None = None
+    error: str | None = None
 
     @classmethod
     def ok(cls, output: str) -> "ToolResult":
