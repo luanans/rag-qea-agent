@@ -28,7 +28,7 @@ def _build_gemini_fn(
 
     key = api_key or os.environ.get("GEMINI_API_KEY", "")
     if not key:
-        raise ValueError("GEMINI_API_KEY é necessário para modelos Gemini.")
+        raise ValueError("GEMINI_API_KEY is required for Gemini models.")
 
     client = genai.Client(api_key=key)
     logger.info("Gemini embedding fn: model=%s task_type=%s", model_name, task_type)

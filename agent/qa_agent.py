@@ -26,7 +26,7 @@ class QAAgent:
         self._top_p = top_p
         self._client = genai.Client(api_key=api_key)
         logger.info(
-            "QAAgent initialized with model='%s' max_iter=%d temperature=%.2f top_p=%.2f top_k=%d",
+            "QAAgent initialized with model='%s' max_iter=%d temperature=%.2f top_p=%.2f",
             model,
             max_iterations,
             temperature,
@@ -34,16 +34,6 @@ class QAAgent:
         )
 
     def answer(self, question: str) -> str:
-        """
-        Responde uma pergunta usando o loop de function calling.
-
-        Fluxo:
-        1. Constrói a mensagem inicial com a pergunta.
-        2. Envia ao Gemini com os schemas das tools.
-        3. Se há function_calls → executa cada uma → adiciona resultados ao histórico.
-        4. Reenvia ao Gemini com os resultados.
-        5. Repete até resposta final ou max_iterations.
-        """
         logger.info("QAAgent.answer: question='%s'", question)
 
         tool_declarations = self._registry.get_gemini_schemas()
@@ -53,7 +43,6 @@ class QAAgent:
             tools=tools,
             temperature=self._temperature,
             top_p=self._top_p,
-            top_k=self._top_k,
         )
 
         contents: list[types.Content] = [
@@ -85,7 +74,7 @@ class QAAgent:
                 logger.info(
                     "Agent produced final answer after %d iteration(s).", iteration
                 )
-                return final_text or "Não foi possível gerar uma resposta."
+                return final_text or "Unable to generate a response."
 
             tool_result_parts: list[types.Part] = []
 
@@ -120,4 +109,4 @@ class QAAgent:
             "Agent reached max_iterations (%d) without final answer.",
             self._max_iterations,
         )
-        return "Limite de iterações atingido. Tente reformular a pergunta."
+        return "Maximum iterations reached. Try rephrasing your question."

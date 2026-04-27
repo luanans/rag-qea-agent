@@ -1,7 +1,3 @@
-"""
-Prompts do agente Q&A.
-"""
-
 SYSTEM_PROMPT = """You are a scientific paper Q&A assistant
 
 ## Your behavior

@@ -34,7 +34,7 @@ RAG_ABSTRACT = (
 
 @pytest.fixture
 def section_store() -> SectionStore:
-    """SectionStore populado com dados de fixture (sem disco)."""
+    """SectionStore populated with fixture data (no disk I/O)."""
     store = SectionStore()
 
     attention = ParsedPaper(
@@ -74,7 +74,7 @@ def section_store() -> SectionStore:
 
 @pytest.fixture
 def mock_vector_store(mocker):
-    """Mock do VectorStore que retorna chunks de fixture."""
+    """VectorStore mock that returns fixture chunks."""
     store = mocker.MagicMock()
     store.query.return_value = [
         {
@@ -95,7 +95,7 @@ def mock_vector_store(mocker):
 
 @pytest.fixture
 def registry_with_mocks(mock_vector_store, section_store):
-    """ToolRegistry completo usando dependências mockadas."""
+    """Full ToolRegistry using mocked dependencies."""
     from tools.extract_section import ExtractSectionTool
     from tools.search_documents import SearchDocumentsTool
 

@@ -34,7 +34,7 @@ class ExtractSectionInput(BaseModel):
     paper_id: PaperId = Field(
         ...,
         description=(
-            "Identificador do paper: "
+            "Paper identifier: "
             "'attention' = Attention Is All You Need, "
             "'bert' = BERT, "
             "'rag' = Retrieval-Augmented Generation."
@@ -43,7 +43,7 @@ class ExtractSectionInput(BaseModel):
     section: SectionName = Field(
         ...,
         description=(
-            "Seção a extrair. Valores válidos: abstract, introduction, conclusion, "
+            "Section to extract. Valid values: abstract, introduction, conclusion, "
             "related_work, methodology, experiments, results, discussion."
         ),
     )
@@ -60,9 +60,9 @@ class ExtractSectionOutput(BaseModel):
 class ExtractSectionTool(BaseTool[ExtractSectionInput, ExtractSectionOutput]):
     name: str = "extract_section"
     description: str = (
-        "Extrai o texto completo de uma seção específica de um paper "
-        "(ex: abstract, introduction, conclusion). "
-        "Use quando precisar do conteúdo integral de uma seção para embasar a resposta."
+        "Extracts the full text of a specific section from a paper "
+        "(e.g. abstract, introduction, conclusion). "
+        "Use when you need the complete content of a section to ground the answer."
     )
     input_model = ExtractSectionInput
     output_model = ExtractSectionOutput

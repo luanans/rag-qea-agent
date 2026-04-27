@@ -51,7 +51,7 @@ class TestQAAgent:
             yield agent
 
     def test_direct_text_response(self, agent):
-        """Gemini responde diretamente sem chamar tools."""
+        """Gemini replies directly without calling any tool."""
         agent._mock_client.models.generate_content.return_value = _make_text_response(
             "The Transformer uses self-attention."
         )
@@ -62,7 +62,7 @@ class TestQAAgent:
         assert agent._mock_client.models.generate_content.call_count == 1
 
     def test_single_tool_call_then_answer(self, agent):
-        """Gemini chama search_documents uma vez, depois responde."""
+        """Gemini calls search_documents once, then produces the final answer."""
         agent._mock_client.models.generate_content.side_effect = [
             _make_function_call_response(
                 "search_documents",
@@ -71,13 +71,13 @@ class TestQAAgent:
             _make_text_response("The Transformer relies on multi-head self-attention."),
         ]
 
-        result = agent.answer("Como funciona o mecanismo de atenção?")
+        result = agent.answer("How does the attention mechanism work?")
 
         assert "attention" in result.lower() or "Transformer" in result
         assert agent._mock_client.models.generate_content.call_count == 2
 
     def test_two_tool_calls_then_answer(self, agent):
-        """Agente chama duas tools antes de responder."""
+        """Agent calls two tools before producing the final answer."""
         agent._mock_client.models.generate_content.side_effect = [
             _make_function_call_response(
                 "search_documents",
@@ -90,41 +90,41 @@ class TestQAAgent:
             _make_text_response("BERT uses bidirectional training of Transformers."),
         ]
 
-        result = agent.answer("Como o BERT é pré-treinado?")
+        result = agent.answer("How is BERT pre-trained?")
 
         assert agent._mock_client.models.generate_content.call_count == 3
         assert result == "BERT uses bidirectional training of Transformers."
 
     def test_max_iterations_reached(self, agent):
-        """Agente para após max_iterations sem resposta final."""
+        """Agent stops after max_iterations without producing a final answer."""
         agent._max_iterations = 2
         agent._mock_client.models.generate_content.return_value = (
             _make_function_call_response("search_documents", {"query": "test"})
         )
 
-        result = agent.answer("Pergunta que causa loop infinito")
+        result = agent.answer("Question that causes an infinite loop")
 
-        assert "iterações" in result.lower() or "limit" in result.lower()
+        assert "limit" in result.lower() or "maximum" in result.lower()
         assert agent._mock_client.models.generate_content.call_count == 2
 
     def test_unknown_tool_call_returns_gracefully(self, agent):
-        """Gemini chama tool inexistente — deve falhar graciosamente."""
+        """Gemini calls a nonexistent tool — agent should handle it gracefully."""
         agent._mock_client.models.generate_content.side_effect = [
             _make_function_call_response("nonexistent_tool", {"foo": "bar"}),
             _make_text_response("I could not find information."),
         ]
 
-        result = agent.answer("Pergunta qualquer")
+        result = agent.answer("Any question")
 
         assert result == "I could not find information."
 
-    def test_registry_schemas_sent_to_gemini(self, agent, registry_with_mocks):
-        """Verifica que os schemas das tools chegam ao Gemini corretamente."""
+    def test_registry_schemas_sent_to_gemini(self, agent):
+        """Tool schemas from the registry are passed to Gemini on every call."""
         agent._mock_client.models.generate_content.return_value = _make_text_response(
             "ok"
         )
 
-        agent.answer("Qualquer pergunta")
+        agent.answer("Any question")
 
         call_kwargs = agent._mock_client.models.generate_content.call_args
         config = call_kwargs.kwargs.get("config")
