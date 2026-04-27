@@ -74,5 +74,7 @@ def get_agent() -> QAAgent:
         api_key=settings.gemini_api_key,
         model=settings.gemini_model,
         max_iterations=settings.agent_max_iterations,
+        temperature=settings.gemini_temperature,
+        top_p=settings.gemini_top_p,
     )
     return agent

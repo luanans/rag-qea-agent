@@ -16,13 +16,21 @@ class QAAgent:
         api_key: str,
         model: str = "gemini-2.5-flash",
         max_iterations: int = 5,
+        temperature: float = 1.0,
+        top_p: float = 0.95,
     ) -> None:
         self._registry = registry
         self._model = model
         self._max_iterations = max_iterations
+        self._temperature = temperature
+        self._top_p = top_p
         self._client = genai.Client(api_key=api_key)
         logger.info(
-            "QAAgent initialized with model='%s' max_iter=%d", model, max_iterations
+            "QAAgent initialized with model='%s' max_iter=%d temperature=%.2f top_p=%.2f top_k=%d",
+            model,
+            max_iterations,
+            temperature,
+            top_p,
         )
 
     def answer(self, question: str) -> str:
@@ -43,6 +51,9 @@ class QAAgent:
         config = types.GenerateContentConfig(
             system_instruction=SYSTEM_PROMPT,
             tools=tools,
+            temperature=self._temperature,
+            top_p=self._top_p,
+            top_k=self._top_k,
         )
 
         contents: list[types.Content] = [

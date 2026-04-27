@@ -26,6 +26,9 @@ class Settings(BaseSettings):
 
     agent_max_iterations: int = Field(default=5, ge=1, le=20)
 
+    gemini_temperature: float = Field(default=1.0, ge=0.0, le=2.0)
+    gemini_top_p: float = Field(default=0.95, ge=0.0, le=1.0)
+
     log_level: str = Field(default="INFO")
 
 
