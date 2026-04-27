@@ -143,6 +143,8 @@ As demais configurações têm valores padrão (ver `app/config.py`). Para custo
 
 ```env
 GEMINI_MODEL=gemini-2.5-flash
+TEMPERATURE=1.0
+TOP_P=0.95
 EMBEDDING_MODEL=gemini-embedding-001
 CHROMA_PERSIST_DIR=./persist/chroma
 CHUNK_SIZE=500
